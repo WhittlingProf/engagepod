@@ -6,9 +6,9 @@ LinkedIn Engagement Pod Notifier - alerts your pod members via email when you pu
 
 ---
 
-## Current Status: DEPLOYED TO RAILWAY
+## Current Status: LIVE & READY FOR USERS
 
-App is live. Needs a Railway Volume added for database persistence.
+App is deployed and fully configured with persistent storage.
 
 ### Working Features
 - Member registration (name + email)
@@ -16,23 +16,14 @@ App is live. Needs a Railway Volume added for database persistence.
 - Email notifications via Resend API (verified domain)
 - Live progress counter showing "Sending 1/3..." as emails go out
 - Registration redirects to submit page with welcome banner + pre-filled email
+- Admin email notification when new members register
 - Frontend served by backend in production
 
 ### Deployment Info
-- **Railway:** Check Railway dashboard for live URL
+- **Live URL:** https://engage.morebetterclients.com
 - **GitHub:** https://github.com/WhittlingProf/engagepod
 - **Branch:** master
-
----
-
-## CRITICAL: Add Railway Volume
-
-**Without a volume, the database resets on every deploy.**
-
-To persist data:
-1. Railway dashboard → your service → **Settings** → **Add Volume**
-2. Mount path: `/app/backend/data`
-3. Redeploy
+- **Volume:** Configured at `/app/backend/data` (149MB used, database persists across deploys)
 
 ---
 
@@ -50,6 +41,7 @@ To persist data:
 
 ```
 RESEND_API_KEY=re_xxxxx
+ADMIN_EMAIL=your@email.com (receives notification when new members join)
 APIFY_TOKEN=apify_api_xxxxx (optional, for LinkedIn URL validation)
 ```
 
@@ -149,7 +141,16 @@ npm run dev
 
 ---
 
-## What Was Done This Session
+## What Was Done Last Session (Jan 29, 2026)
+
+1. Added admin email notification on new member registration
+   - Sends email to `ADMIN_EMAIL` env var when someone joins
+   - Helps track adoption without checking the database
+2. Set up custom domain: `engage.morebetterclients.com`
+3. Verified Railway volume is configured and working (149MB storage used)
+4. Linked local project to Railway CLI for easier management
+
+### Previous Session
 
 1. Configured Resend email with verified domain `send.morebetterclients.com`
 2. Updated subject line to "Support {name}'s new LinkedIn post"
@@ -168,15 +169,15 @@ npm run dev
 
 - **Apify validation** shows "Forbidden" in logs - posts still work (graceful fallback)
 - **No auth** - anyone with the URL can register/post (fine for trusted pods)
-- **Volume needed** - add Railway volume before inviting real users
 
 ---
 
-## Test Accounts in DB
+## Current Members in DB
 
-- Josh (joshua.c.bowen@gmail.com)
-- Josh (josh@handcraftedcopy.com)
-- Additional test accounts may have been added during testing
+- JoshG (joshua.c.bowen@gmail.com)
+- JoshH (josh@handcraftedcopy.com)
+- JoshS (jcbswipe@gmail.com)
+- JoshM (josh@mirasee.com)
 
 ---
 
@@ -199,7 +200,7 @@ curl -X POST http://localhost:3001/api/posts \
 
 ## External Services
 
-- **Resend:** https://resend.com (email)
-- **Railway:** https://railway.app (hosting)
+- **Resend:** <https://resend.com> (email)
+- **Railway:** <https://railway.app> (hosting)
 - **Cloudflare:** DNS for morebetterclients.com
-- **Apify:** https://apify.com (optional URL validation)
+- **Apify:** <https://apify.com> (optional URL validation)
