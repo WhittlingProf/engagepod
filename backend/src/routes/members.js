@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/database.js';
+import { sendAdminNewMemberNotification } from '../services/email.js';
 
 const router = Router();
 
@@ -72,13 +73,20 @@ router.post('/', (req, res) => {
     `);
     stmt.run(id, name.trim(), email.toLowerCase());
 
+    const newMember = {
+      id,
+      name: name.trim(),
+      email: email.toLowerCase()
+    };
+
+    // Notify admin of new registration (don't await - fire and forget)
+    sendAdminNewMemberNotification(newMember).catch(err => {
+      console.error('Failed to send admin notification:', err);
+    });
+
     res.status(201).json({
       message: 'Member registered successfully',
-      member: {
-        id,
-        name: name.trim(),
-        email: email.toLowerCase()
-      }
+      member: newMember
     });
   } catch (err) {
     console.error('Error creating member:', err);
