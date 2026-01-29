@@ -1,0 +1,20 @@
+{
+  "name": "engagepod-backend",
+  "version": "1.0.0",
+  "description": "EngagePod API server",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "init-db": "node src/db/init.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "resend": "^4.0.1",
+    "uuid": "^11.0.4"
+  }
+}
