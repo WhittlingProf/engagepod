@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 function Submit() {
-  const [formData, setFormData] = useState({ email: '', linkedin_url: '', note: '' });
+  const location = useLocation();
+  const welcomeState = location.state;
+
+  const [formData, setFormData] = useState({
+    email: welcomeState?.email || '',
+    linkedin_url: '',
+    note: ''
+  });
   const [status, setStatus] = useState({ type: '', message: '', details: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(welcomeState?.welcome || false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,6 +57,23 @@ function Submit() {
 
   return (
     <div className="max-w-md mx-auto animate-fadeIn">
+      {/* Welcome banner for new registrations */}
+      {showWelcome && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded relative">
+          <button
+            onClick={() => setShowWelcome(false)}
+            className="absolute top-2 right-2 text-green-600 hover:text-green-800"
+            aria-label="Dismiss"
+          >
+            &times;
+          </button>
+          <p className="font-body text-green-800">
+            <span className="font-semibold">You're in, {welcomeState?.name}!</span>{' '}
+            You'll get an email whenever someone in the pod posts. Now submit your first post below.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="font-display text-3xl md:text-4xl text-espresso mb-3">

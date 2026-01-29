@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Register() {
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,11 +26,14 @@ function Register() {
       const data = await response.json();
 
       if (response.ok) {
-        setStatus({
-          type: 'success',
-          message: 'You\'re in! You\'ll get an email whenever someone in the pod posts.'
+        // Redirect to submit page with welcome state
+        navigate('/submit', {
+          state: {
+            welcome: true,
+            email: formData.email,
+            name: formData.name
+          }
         });
-        setFormData({ name: '', email: '' });
       } else {
         setStatus({
           type: 'error',

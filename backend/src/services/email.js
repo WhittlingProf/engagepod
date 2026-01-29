@@ -11,7 +11,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
  * @param {string} note - Optional note from the poster
  */
 export async function sendPostNotification(poster, recipients, linkedinUrl, note) {
-  const emailPromises = recipients.map(async (recipient) => {
+  const results = [];
+
+  for (const recipient of recipients) {
     const noteSection = note
       ? `\n"${note}"\n`
       : '';
@@ -28,25 +30,28 @@ The first 30-60 minutes matter most for reach. A quick comment or reaction makes
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'EngagePod <onboarding@resend.dev>',
+        from: 'EngagePod <hello@send.morebetterclients.com>',
         to: recipient.email,
-        subject: `${poster.name} just posted on LinkedIn`,
+        subject: `Support ${poster.name}'s new LinkedIn post`,
         text: emailBody,
       });
 
       if (error) {
         console.error(`Failed to send email to ${recipient.email}:`, error);
-        return { success: false, email: recipient.email, error };
+        results.push({ success: false, email: recipient.email, error });
+      } else {
+        results.push({ success: true, email: recipient.email, id: data.id });
       }
-
-      return { success: true, email: recipient.email, id: data.id };
     } catch (err) {
       console.error(`Error sending email to ${recipient.email}:`, err);
-      return { success: false, email: recipient.email, error: err.message };
+      results.push({ success: false, email: recipient.email, error: err.message });
     }
-  });
 
-  const results = await Promise.all(emailPromises);
+    // Delay between sends to avoid Resend rate limit (2 req/sec)
+    if (recipients.indexOf(recipient) < recipients.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+  }
   const successful = results.filter(r => r.success).length;
   const failed = results.filter(r => !r.success).length;
 
