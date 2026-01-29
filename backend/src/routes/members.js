@@ -111,4 +111,77 @@ router.get('/:email', (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/members/:id
+ * Delete a member by ID (also deletes their posts)
+ */
+router.delete('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const member = db.prepare('SELECT * FROM members WHERE id = ?').get(id);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    // Delete member's posts first (cascade)
+    const postsDeleted = db.prepare('DELETE FROM posts WHERE member_id = ?').run(id);
+    db.prepare('DELETE FROM members WHERE id = ?').run(id);
+
+    res.json({
+      message: 'Member deleted',
+      member,
+      posts_deleted: postsDeleted.changes
+    });
+  } catch (err) {
+    console.error('Error deleting member:', err);
+    res.status(500).json({ error: 'Failed to delete member' });
+  }
+});
+
+/**
+ * PUT /api/members/:id
+ * Update a member
+ */
+router.put('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, is_active } = req.body;
+
+    const member = db.prepare('SELECT * FROM members WHERE id = ?').get(id);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name.trim());
+    }
+    if (email !== undefined) {
+      updates.push('email = ?');
+      values.push(email.toLowerCase());
+    }
+    if (is_active !== undefined) {
+      updates.push('is_active = ?');
+      values.push(is_active ? 1 : 0);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(id);
+    db.prepare(`UPDATE members SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+    const updated = db.prepare('SELECT * FROM members WHERE id = ?').get(id);
+    res.json({ message: 'Member updated', member: updated });
+  } catch (err) {
+    console.error('Error updating member:', err);
+    res.status(500).json({ error: 'Failed to update member' });
+  }
+});
+
 export default router;

@@ -28,7 +28,7 @@ The first 30-60 minutes matter most for reach. A quick comment or reaction makes
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'EngagePod <notifications@engagepod.com>',
+        from: 'EngagePod <onboarding@resend.dev>',
         to: recipient.email,
         subject: `${poster.name} just posted on LinkedIn`,
         text: emailBody,

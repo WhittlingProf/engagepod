@@ -117,4 +117,26 @@ router.post('/', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/posts/:id
+ * Delete a post by ID
+ */
+router.delete('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(id);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    db.prepare('DELETE FROM posts WHERE id = ?').run(id);
+
+    res.json({ message: 'Post deleted', post });
+  } catch (err) {
+    console.error('Error deleting post:', err);
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
 export default router;
