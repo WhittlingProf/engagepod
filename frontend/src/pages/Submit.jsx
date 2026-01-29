@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 function Submit() {
@@ -13,39 +13,79 @@ function Submit() {
   const [status, setStatus] = useState({ type: '', message: '', details: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showWelcome, setShowWelcome] = useState(welcomeState?.welcome || false);
+  const [sendingProgress, setSendingProgress] = useState({ current: 0, total: 0 });
+  const progressInterval = useRef(null);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setStatus({ type: '', message: '', details: null });
+    setSendingProgress({ current: 0, total: 0 });
 
     try {
+      // First, get member count to show progress
+      const membersRes = await fetch('/api/members');
+      const membersData = await membersRes.json();
+      // Subtract 1 because the poster doesn't get notified
+      const recipientCount = Math.max(0, (membersData.members?.length || 1) - 1);
+
+      setSendingProgress({ current: 0, total: recipientCount });
+
+      // Start progress ticker (600ms per email)
+      let currentCount = 0;
+      progressInterval.current = setInterval(() => {
+        currentCount++;
+        if (currentCount <= recipientCount) {
+          setSendingProgress(prev => ({ ...prev, current: currentCount }));
+        }
+      }, 650); // Slightly longer than backend delay to stay behind actual progress
+
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
+      // Clear the progress interval
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
+
       const data = await response.json();
 
       if (response.ok) {
+        setSendingProgress({ current: data.notifications.sent, total: data.notifications.total_members });
         setStatus({
           type: 'success',
           message: 'Done! Your pod has been notified.',
           details: data.notifications
         });
-        setFormData({ email: '', linkedin_url: '', note: '' });
+        setFormData(prev => ({ ...prev, linkedin_url: '', note: '' }));
       } else {
+        setSendingProgress({ current: 0, total: 0 });
         setStatus({
           type: 'error',
           message: data.error || 'Something went wrong. Please try again.'
         });
       }
     } catch (err) {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+      setSendingProgress({ current: 0, total: 0 });
       setStatus({
         type: 'error',
         message: 'Network error. Check your connection and try again.'
@@ -150,8 +190,20 @@ function Submit() {
             />
           </div>
 
+          {/* Sending progress */}
+          {isSubmitting && sendingProgress.total > 0 && (
+            <div className="p-4 rounded bg-blue-50 border border-blue-200 text-blue-800">
+              <p className="font-body text-sm">
+                Sending notifications...
+              </p>
+              <p className="font-body text-xs mt-1 opacity-80">
+                {sendingProgress.current} of {sendingProgress.total} members notified
+              </p>
+            </div>
+          )}
+
           {/* Status message */}
-          {status.message && (
+          {status.message && !isSubmitting && (
             <div
               className={`p-4 rounded ${
                 status.type === 'success'
@@ -177,7 +229,11 @@ function Submit() {
                    hover:bg-espresso-light transition-all duration-200 shadow-card
                    disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Sending...' : 'Notify the Pod →'}
+          {isSubmitting
+            ? (sendingProgress.total > 0
+                ? `Sending ${sendingProgress.current}/${sendingProgress.total}...`
+                : 'Preparing...')
+            : 'Notify the Pod →'}
         </button>
       </form>
 
