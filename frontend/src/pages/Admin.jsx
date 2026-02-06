@@ -10,6 +10,7 @@ function Admin() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
   const [emailSending, setEmailSending] = useState(false);
+  const [emailTesting, setEmailTesting] = useState(false);
   const [emailResult, setEmailResult] = useState(null);
   const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
   const progressInterval = useRef(null);
@@ -83,6 +84,30 @@ function Admin() {
       }
     } catch (err) {
       alert('Failed to delete member');
+    }
+  };
+
+  const handleSendTest = async () => {
+    if (!emailSubject || !emailMessage) return;
+    setEmailTesting(true);
+    setEmailResult(null);
+
+    try {
+      const res = await fetch('/api/survey/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailResult({ error: data.error });
+      } else {
+        setEmailResult({ success: true, test: true, ...data });
+      }
+    } catch (err) {
+      setEmailResult({ error: err.message });
+    } finally {
+      setEmailTesting(false);
     }
   };
 
@@ -220,15 +245,25 @@ function Admin() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={emailSending}
-            className="px-6 py-2 bg-espresso text-parchment font-body hover:bg-espresso/90 transition-colors disabled:opacity-50"
-          >
-            {emailSending
-              ? `Sending ${sendProgress.current}/${sendProgress.total}...`
-              : 'Send Email'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleSendTest}
+              disabled={emailTesting || emailSending || !emailSubject || !emailMessage}
+              className="px-6 py-2 border border-espresso text-espresso font-body hover:bg-espresso/10 transition-colors disabled:opacity-50"
+            >
+              {emailTesting ? 'Sending test...' : 'Send Test'}
+            </button>
+            <button
+              type="submit"
+              disabled={emailSending || emailTesting}
+              className="px-6 py-2 bg-espresso text-parchment font-body hover:bg-espresso/90 transition-colors disabled:opacity-50"
+            >
+              {emailSending
+                ? `Sending ${sendProgress.current}/${sendProgress.total}...`
+                : `Send to All ${members.length}`}
+            </button>
+          </div>
         </form>
 
         {emailResult && (
@@ -239,7 +274,9 @@ function Admin() {
           }`}>
             {emailResult.error
               ? `Error: ${emailResult.error}`
-              : `Sent to ${emailResult.successful} of ${emailResult.total} members${emailResult.failed > 0 ? ` (${emailResult.failed} failed)` : ''}`
+              : emailResult.test
+                ? 'Test sent to your email'
+                : `Sent to ${emailResult.successful} of ${emailResult.total} members${emailResult.failed > 0 ? ` (${emailResult.failed} failed)` : ''}`
             }
           </div>
         )}

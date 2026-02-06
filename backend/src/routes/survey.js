@@ -31,4 +31,30 @@ router.post('/send', async (req, res) => {
   }
 });
 
+// POST /api/survey/test - Send test email to admin only
+router.post('/test', async (req, res) => {
+  const { subject, message } = req.body;
+
+  if (!subject || !message) {
+    return res.status(400).json({ error: 'subject and message are required' });
+  }
+
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || 'josh@handcraftedcopy.com';
+    const result = await sendBroadcastEmail(
+      [{ name: 'Josh', email: adminEmail }],
+      subject,
+      message
+    );
+
+    res.json({
+      message: `Test sent to ${adminEmail}`,
+      ...result
+    });
+  } catch (err) {
+    console.error('Test send error:', err);
+    res.status(500).json({ error: 'Failed to send test email' });
+  }
+});
+
 export default router;
