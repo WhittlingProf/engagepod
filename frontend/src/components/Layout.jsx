@@ -40,6 +40,18 @@ function Layout() {
                 Join
               </Link>
               <Link
+                to="/feed"
+                className="px-5 py-2.5 text-sm font-semibold rounded transition-all duration-200"
+                style={{
+                  backgroundColor: isActive('/feed') ? '#2C1810' : 'transparent',
+                  color: isActive('/feed') ? '#FFF8E7' : '#2C1810',
+                  border: '2px solid #2C1810',
+                  fontFamily: 'Crimson Text, Georgia, serif'
+                }}
+              >
+                Feed
+              </Link>
+              <Link
                 to="/submit"
                 className="px-5 py-2.5 text-sm font-semibold rounded transition-all duration-200"
                 style={{

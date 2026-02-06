@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import membersRouter from './routes/members.js';
 import postsRouter from './routes/posts.js';
 import surveyRouter from './routes/survey.js';
+import feedRouter from './routes/feed.js';
+import engagementsRouter from './routes/engagements.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +27,8 @@ app.use(express.json());
 app.use('/api/members', membersRouter);
 app.use('/api/posts', postsRouter);
 app.use('/api/survey', surveyRouter);
+app.use('/api/feed', feedRouter);
+app.use('/api/engagements', engagementsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

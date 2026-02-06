@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Register from './pages/Register';
 import Submit from './pages/Submit';
 import Admin from './pages/Admin';
+import Feed from './pages/Feed';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route index element={<Home />} />
         <Route path="register" element={<Register />} />
         <Route path="submit" element={<Submit />} />
+        <Route path="feed" element={<Feed />} />
         <Route path="admin" element={<Admin />} />
       </Route>
     </Routes>

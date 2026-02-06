@@ -16,6 +16,7 @@ if (!existsSync(dbDir)) {
 
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 // Initialize database with schema
 const schemaPath = join(__dirname, 'schema.sql');

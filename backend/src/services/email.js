@@ -45,6 +45,8 @@ Engage now: ${linkedinUrl}
 
 The first 30-60 minutes matter most for reach. A quick comment or reaction makes a big difference!
 
+See all recent posts: https://engage.morebetterclients.com/feed
+
 - EngagePod`;
 
     try {
