@@ -67,11 +67,43 @@ The first 30-60 minutes matter most for reach. A quick comment or reaction makes
 }
 
 /**
- * Send notification to admin when a new member registers
- * @param {Object} member - The new member
- * @param {string} member.name - Member's name
- * @param {string} member.email - Member's email
+ * Send an email to all active pod members
  */
+export async function sendBroadcastEmail(recipients, subject, message) {
+  const results = [];
+
+  for (const recipient of recipients) {
+    const emailBody = `Hey ${recipient.name}!\n\n${message}\n\n- EngagePod`;
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'EngagePod <hello@send.morebetterclients.com>',
+        to: recipient.email,
+        subject,
+        text: emailBody,
+      });
+
+      if (error) {
+        console.error(`Failed to send to ${recipient.email}:`, error);
+        results.push({ success: false, email: recipient.email, error });
+      } else {
+        results.push({ success: true, email: recipient.email, id: data.id });
+      }
+    } catch (err) {
+      console.error(`Error sending to ${recipient.email}:`, err);
+      results.push({ success: false, email: recipient.email, error: err.message });
+    }
+
+    if (recipients.indexOf(recipient) < recipients.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+  }
+
+  const successful = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
+  return { total: recipients.length, successful, failed, results };
+}
+
 export async function sendAdminNewMemberNotification(member) {
   const emailBody = `New member joined EngagePod!
 

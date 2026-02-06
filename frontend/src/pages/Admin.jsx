@@ -6,6 +6,12 @@ function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Broadcast email state
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState(null);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -59,6 +65,32 @@ function Admin() {
     );
   }
 
+  const handleSendEmail = async (e) => {
+    e.preventDefault();
+    setEmailSending(true);
+    setEmailResult(null);
+
+    try {
+      const res = await fetch('/api/survey/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setEmailResult({ error: data.error });
+      } else {
+        setEmailResult({ success: true, ...data });
+      }
+    } catch (err) {
+      setEmailResult({ error: err.message });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   return (
     <div className="space-y-12">
       <div className="text-center">
@@ -105,6 +137,59 @@ function Admin() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </section>
+
+      {/* Send Email Section */}
+      <section>
+        <h2 className="font-display text-2xl text-espresso mb-4">Send Email</h2>
+        <p className="font-body text-ink/60 mb-4">
+          Send an email to all {members.length} active member{members.length !== 1 ? 's' : ''}.
+        </p>
+
+        <form onSubmit={handleSendEmail} className="space-y-4 max-w-lg">
+          <div>
+            <label className="block font-body text-sm text-ink/70 mb-1">Subject</label>
+            <input
+              type="text"
+              required
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              className="w-full px-3 py-2 border border-amber-coffee/30 bg-white font-body text-ink focus:outline-none focus:border-sepia"
+            />
+          </div>
+
+          <div>
+            <label className="block font-body text-sm text-ink/70 mb-1">Message</label>
+            <textarea
+              required
+              value={emailMessage}
+              onChange={(e) => setEmailMessage(e.target.value)}
+              rows={5}
+              className="w-full px-3 py-2 border border-amber-coffee/30 bg-white font-body text-ink focus:outline-none focus:border-sepia"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={emailSending}
+            className="px-6 py-2 bg-espresso text-parchment font-body hover:bg-espresso/90 transition-colors disabled:opacity-50"
+          >
+            {emailSending ? `Sending to ${members.length} members...` : 'Send Email'}
+          </button>
+        </form>
+
+        {emailResult && (
+          <div className={`mt-4 p-4 font-body text-sm ${
+            emailResult.error
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-green-50 text-green-700 border border-green-200'
+          }`}>
+            {emailResult.error
+              ? `Error: ${emailResult.error}`
+              : `Sent to ${emailResult.successful} of ${emailResult.total} members${emailResult.failed > 0 ? ` (${emailResult.failed} failed)` : ''}`
+            }
           </div>
         )}
       </section>
