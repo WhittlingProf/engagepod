@@ -1,25 +1,41 @@
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Admin email for notifications (defaults to your email)
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'josh@handcraftedcopy.com';
+
+const SENDER = { name: 'EngagePod', email: 'hello@send.morebetterclients.com' };
+
+async function sendEmail(to, subject, textContent) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': BREVO_API_KEY,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: SENDER,
+      to: [{ email: to }],
+      subject,
+      textContent,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || `Brevo API error: ${res.status}`);
+  }
+
+  return data;
+}
 
 /**
  * Send notification emails to pod members about a new LinkedIn post
- * @param {Object} poster - The member who posted
- * @param {string} poster.name - Poster's name
- * @param {Array} recipients - Array of member objects to notify
- * @param {string} linkedinUrl - URL to the LinkedIn post
- * @param {string} note - Optional note from the poster
  */
 export async function sendPostNotification(poster, recipients, linkedinUrl, note) {
   const results = [];
 
   for (const recipient of recipients) {
-    const noteSection = note
-      ? `\n"${note}"\n`
-      : '';
+    const noteSection = note ? `\n"${note}"\n` : '';
 
     const emailBody = `Hey ${recipient.name}!
 
@@ -32,38 +48,25 @@ The first 30-60 minutes matter most for reach. A quick comment or reaction makes
 - EngagePod`;
 
     try {
-      const { data, error } = await resend.emails.send({
-        from: 'EngagePod <hello@send.morebetterclients.com>',
-        to: recipient.email,
-        subject: `Support ${poster.name}'s new LinkedIn post`,
-        text: emailBody,
-      });
-
-      if (error) {
-        console.error(`Failed to send email to ${recipient.email}:`, error);
-        results.push({ success: false, email: recipient.email, error });
-      } else {
-        results.push({ success: true, email: recipient.email, id: data.id });
-      }
+      const data = await sendEmail(
+        recipient.email,
+        `Support ${poster.name}'s new LinkedIn post`,
+        emailBody
+      );
+      results.push({ success: true, email: recipient.email, id: data.messageId });
     } catch (err) {
-      console.error(`Error sending email to ${recipient.email}:`, err);
+      console.error(`Failed to send to ${recipient.email}:`, err.message);
       results.push({ success: false, email: recipient.email, error: err.message });
     }
 
-    // Delay between sends to avoid Resend rate limit (2 req/sec)
     if (recipients.indexOf(recipient) < recipients.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 600));
     }
   }
+
   const successful = results.filter(r => r.success).length;
   const failed = results.filter(r => !r.success).length;
-
-  return {
-    total: recipients.length,
-    successful,
-    failed,
-    results
-  };
+  return { total: recipients.length, successful, failed, results };
 }
 
 /**
@@ -76,21 +79,10 @@ export async function sendBroadcastEmail(recipients, subject, message) {
     const emailBody = `Hey ${recipient.name}!\n\n${message}\n\n- EngagePod`;
 
     try {
-      const { data, error } = await resend.emails.send({
-        from: 'EngagePod <hello@send.morebetterclients.com>',
-        to: recipient.email,
-        subject,
-        text: emailBody,
-      });
-
-      if (error) {
-        console.error(`Failed to send to ${recipient.email}:`, error);
-        results.push({ success: false, email: recipient.email, error });
-      } else {
-        results.push({ success: true, email: recipient.email, id: data.id });
-      }
+      const data = await sendEmail(recipient.email, subject, emailBody);
+      results.push({ success: true, email: recipient.email, id: data.messageId });
     } catch (err) {
-      console.error(`Error sending to ${recipient.email}:`, err);
+      console.error(`Failed to send to ${recipient.email}:`, err.message);
       results.push({ success: false, email: recipient.email, error: err.message });
     }
 
@@ -113,21 +105,14 @@ Email: ${member.email}
 - EngagePod`;
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'EngagePod <hello@send.morebetterclients.com>',
-      to: ADMIN_EMAIL,
-      subject: `New EngagePod member: ${member.name}`,
-      text: emailBody,
-    });
-
-    if (error) {
-      console.error('Failed to send admin notification:', error);
-      return { success: false, error };
-    }
-
-    return { success: true, id: data.id };
+    const data = await sendEmail(
+      ADMIN_EMAIL,
+      `New EngagePod member: ${member.name}`,
+      emailBody
+    );
+    return { success: true, id: data.messageId };
   } catch (err) {
-    console.error('Error sending admin notification:', err);
+    console.error('Error sending admin notification:', err.message);
     return { success: false, error: err.message };
   }
 }
