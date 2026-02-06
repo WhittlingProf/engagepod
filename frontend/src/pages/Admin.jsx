@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function Admin() {
   const [members, setMembers] = useState([]);
@@ -11,6 +11,14 @@ function Admin() {
   const [emailMessage, setEmailMessage] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailResult, setEmailResult] = useState(null);
+  const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
+  const progressInterval = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -65,10 +73,34 @@ function Admin() {
     );
   }
 
+  const handleDeleteMember = async (member) => {
+    if (!window.confirm(`Remove ${member.name} (${member.email}) from the pod?`)) return;
+
+    try {
+      const res = await fetch(`/api/members/${member.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMembers(prev => prev.filter(m => m.id !== member.id));
+      }
+    } catch (err) {
+      alert('Failed to delete member');
+    }
+  };
+
   const handleSendEmail = async (e) => {
     e.preventDefault();
     setEmailSending(true);
     setEmailResult(null);
+
+    const total = members.length;
+    setSendProgress({ current: 0, total });
+
+    let currentCount = 0;
+    progressInterval.current = setInterval(() => {
+      currentCount++;
+      if (currentCount <= total) {
+        setSendProgress(prev => ({ ...prev, current: currentCount }));
+      }
+    }, 650);
 
     try {
       const res = await fetch('/api/survey/send', {
@@ -77,14 +109,22 @@ function Admin() {
         body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
       });
 
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
+
       const data = await res.json();
 
       if (!res.ok) {
+        setSendProgress({ current: 0, total: 0 });
         setEmailResult({ error: data.error });
       } else {
+        setSendProgress({ current: data.successful, total: data.total });
         setEmailResult({ success: true, ...data });
       }
     } catch (err) {
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
+      setSendProgress({ current: 0, total: 0 });
       setEmailResult({ error: err.message });
     } finally {
       setEmailSending(false);
@@ -116,6 +156,7 @@ function Admin() {
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Joined</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-coffee/10">
@@ -132,6 +173,14 @@ function Admin() {
                       }`}>
                         {member.is_active ? 'Active' : 'Inactive'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDeleteMember(member)}
+                        className="text-xs text-red-500 hover:text-red-700 font-body"
+                      >
+                        Remove
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -176,7 +225,9 @@ function Admin() {
             disabled={emailSending}
             className="px-6 py-2 bg-espresso text-parchment font-body hover:bg-espresso/90 transition-colors disabled:opacity-50"
           >
-            {emailSending ? `Sending to ${members.length} members...` : 'Send Email'}
+            {emailSending
+              ? `Sending ${sendProgress.current}/${sendProgress.total}...`
+              : 'Send Email'}
           </button>
         </form>
 
