@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/database.js';
-import { sendAdminNewMemberNotification } from '../services/email.js';
+import { sendWelcomeEmail, sendAdminNewMemberNotification } from '../services/email.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = Router();
@@ -80,7 +80,12 @@ router.post('/', (req, res) => {
       email: email.toLowerCase()
     };
 
-    // Notify admin of new registration (don't await - fire and forget)
+    // Send welcome email to new member (fire and forget)
+    sendWelcomeEmail(newMember).catch(err => {
+      console.error('Failed to send welcome email:', err);
+    });
+
+    // Notify admin of new registration (fire and forget)
     sendAdminNewMemberNotification(newMember).catch(err => {
       console.error('Failed to send admin notification:', err);
     });

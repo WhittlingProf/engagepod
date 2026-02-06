@@ -22,14 +22,15 @@ Edit `backend/.env` with your credentials:
 
 ```
 PORT=3001
-RESEND_API_KEY=re_your_api_key_here
+BREVO_API_KEY=xkeysib-your_api_key_here
+ADMIN_PASSWORD=pick-a-strong-password
 APIFY_TOKEN=apify_api_your_token_here
 DATABASE_PATH=./data/engagepod.db
 FRONTEND_URL=http://localhost:5173
 ```
 
 **Get your API keys:**
-- Resend: https://resend.com (100 free emails/day)
+- Brevo: https://brevo.com (300 free emails/day)
 - Apify: https://apify.com (optional, for LinkedIn URL validation)
 
 ### 3. Run the app
@@ -55,18 +56,21 @@ Open http://localhost:5173 in your browser.
 - **Frontend**: React + Tailwind CSS + Vite
 - **Backend**: Node.js + Express
 - **Database**: SQLite
-- **Email**: Resend
+- **Email**: Brevo (300/day free tier)
 - **URL Validation**: Apify (optional)
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/health | Health check |
-| GET | /api/members | List all members |
-| POST | /api/members | Register a new member |
-| GET | /api/posts | List recent posts |
-| POST | /api/posts | Submit a post and notify members |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/health | No | Health check |
+| GET | /api/members | No | List all members |
+| POST | /api/members | No | Register a new member |
+| GET | /api/posts | No | List recent posts |
+| POST | /api/posts | No | Submit a post and notify members |
+| POST | /api/survey/verify | Admin | Check admin password |
+| POST | /api/survey/send | Admin | Send broadcast email to all members |
+| POST | /api/survey/test | Admin | Send test email to admin only |
 
 ## Deployment
 
@@ -77,7 +81,7 @@ The app is designed to be deployed on Railway:
 3. Set environment variables in Railway dashboard
 4. Deploy
 
-For Resend, you'll need to verify a domain or use their testing domain.
+For Brevo, you'll need to verify a sending domain.
 
 ## License
 

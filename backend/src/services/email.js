@@ -96,6 +96,41 @@ export async function sendBroadcastEmail(recipients, subject, message) {
   return { total: recipients.length, successful, failed, results };
 }
 
+export async function sendWelcomeEmail(member) {
+  const emailBody = `Hey ${member.name}!
+
+You're in. Welcome to EngagePod.
+
+Back in the 1700s, the best ideas didn't spread through newspapers — they spread through coffeehouses. Writers, thinkers, and merchants would show up, share what they were working on, and the room would rally around the good stuff.
+
+LinkedIn's not so different. And this pod is your connection to the room.
+
+Here's how it works:
+
+1. Publish a LinkedIn post
+2. Drop the link at engage.morebetterclients.com/submit
+3. The pod gets notified and shows up to engage
+
+When someone else posts, you'll get an email with their link. Click through, leave a thoughtful comment, give it a reaction. The first hour matters most for reach, so the quicker we rally, the further the ideas travel.
+
+Ready to share something?
+https://engage.morebetterclients.com/submit
+
+Josh & EngagePod`;
+
+  try {
+    const data = await sendEmail(
+      member.email,
+      `Welcome to the pod, ${member.name}!`,
+      emailBody
+    );
+    return { success: true, id: data.messageId };
+  } catch (err) {
+    console.error('Error sending welcome email:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function sendAdminNewMemberNotification(member) {
   const emailBody = `New member joined EngagePod!
 
