@@ -89,7 +89,9 @@ function Admin() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // SQLite CURRENT_TIMESTAMP is UTC but lacks a Z suffix
+    const utcDate = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    return new Date(utcDate).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
