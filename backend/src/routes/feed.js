@@ -9,7 +9,7 @@ const router = Router();
  */
 router.get('/', (req, res) => {
   try {
-    const days = parseInt(req.query.days) || 7;
+    const days = parseInt(req.query.days) || 2;
     const limit = parseInt(req.query.limit) || 20;
 
     // Get recent posts with member info

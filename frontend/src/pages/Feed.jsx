@@ -9,7 +9,7 @@ function Feed() {
 
   const [posts, setPosts] = useState([]);
   const [totalMembers, setTotalMembers] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Auto-identify if email was stored from a previous visit
@@ -20,9 +20,10 @@ function Feed() {
     }
   }, []);
 
-  // Fetch feed data
+  // Fetch feed data (only after member is identified)
   const fetchFeed = useCallback(async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/feed');
       if (!res.ok) throw new Error('Failed to load feed');
       const data = await res.json();
@@ -36,8 +37,10 @@ function Feed() {
   }, []);
 
   useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
+    if (member) {
+      fetchFeed();
+    }
+  }, [member, fetchFeed]);
 
   async function lookupMember(emailToLookup) {
     setIdentifying(true);
@@ -138,22 +141,6 @@ function Feed() {
     return `${days}d ago`;
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <p className="font-body text-ink/60">Loading feed...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="font-body text-red-600">Error: {error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="animate-fadeIn">
       {/* Header */}
@@ -162,7 +149,7 @@ function Feed() {
           The Feed
         </h1>
         <p className="font-body text-ink/70 text-lg">
-          Recent posts from the pod. Click through, engage, check in.
+          Recent posts from the pod (last 48 hours). Click through, engage, check in.
         </p>
       </div>
 
@@ -210,10 +197,18 @@ function Feed() {
         )}
       </div>
 
-      {/* Posts */}
-      {posts.length === 0 ? (
+      {/* Posts (only shown after identification) */}
+      {!member ? null : loading ? (
         <div className="text-center py-12">
-          <p className="font-body text-ink/60 italic mb-4">No posts in the last 7 days.</p>
+          <p className="font-body text-ink/60">Loading feed...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="font-body text-red-600">Error: {error}</p>
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="font-body text-ink/60 italic mb-4">No posts in the last 48 hours.</p>
           <Link
             to="/submit"
             className="inline-block px-6 py-3 bg-espresso text-parchment font-body font-semibold
