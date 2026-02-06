@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/database.js';
 import { sendAdminNewMemberNotification } from '../services/email.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = Router();
 
@@ -123,7 +124,7 @@ router.get('/:email', (req, res) => {
  * DELETE /api/members/:id
  * Delete a member by ID (also deletes their posts)
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
 
@@ -151,7 +152,7 @@ router.delete('/:id', (req, res) => {
  * PUT /api/members/:id
  * Update a member
  */
-router.put('/:id', (req, res) => {
+router.put('/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, is_active } = req.body;

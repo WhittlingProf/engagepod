@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 
 function Admin() {
+  const [authed, setAuthed] = useState(!!sessionStorage.getItem('adminPass'));
+  const [passInput, setPassInput] = useState('');
+  const [passError, setPassError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
   const [members, setMembers] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +20,12 @@ function Admin() {
   const [sendProgress, setSendProgress] = useState({ current: 0, total: 0 });
   const progressInterval = useRef(null);
 
+  const getAdminHeaders = (extra = {}) => ({
+    'Content-Type': 'application/json',
+    'x-admin-password': sessionStorage.getItem('adminPass') || '',
+    ...extra,
+  });
+
   useEffect(() => {
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
@@ -22,6 +33,8 @@ function Admin() {
   }, []);
 
   useEffect(() => {
+    if (!authed) return;
+
     async function fetchData() {
       try {
         const [membersRes, postsRes] = await Promise.all([
@@ -46,7 +59,34 @@ function Admin() {
     }
 
     fetchData();
-  }, []);
+  }, [authed]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setVerifying(true);
+    setPassError('');
+
+    try {
+      const res = await fetch('/api/survey/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': passInput,
+        },
+      });
+
+      if (res.ok) {
+        sessionStorage.setItem('adminPass', passInput);
+        setAuthed(true);
+      } else {
+        setPassError('Wrong password');
+      }
+    } catch {
+      setPassError('Could not connect');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -58,27 +98,15 @@ function Admin() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <p className="font-body text-ink/60">Loading...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="font-body text-red-600">Error: {error}</p>
-      </div>
-    );
-  }
-
   const handleDeleteMember = async (member) => {
     if (!window.confirm(`Remove ${member.name} (${member.email}) from the pod?`)) return;
 
     try {
-      const res = await fetch(`/api/members/${member.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/members/${member.id}`, {
+        method: 'DELETE',
+        headers: getAdminHeaders(),
+      });
+      if (res.status === 401) { sessionStorage.removeItem('adminPass'); setAuthed(false); return; }
       if (res.ok) {
         setMembers(prev => prev.filter(m => m.id !== member.id));
       }
@@ -95,9 +123,10 @@ function Admin() {
     try {
       const res = await fetch('/api/survey/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
       });
+      if (res.status === 401) { sessionStorage.removeItem('adminPass'); setAuthed(false); return; }
       const data = await res.json();
       if (!res.ok) {
         setEmailResult({ error: data.error });
@@ -130,12 +159,14 @@ function Admin() {
     try {
       const res = await fetch('/api/survey/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ subject: emailSubject, message: emailMessage }),
       });
 
       clearInterval(progressInterval.current);
       progressInterval.current = null;
+
+      if (res.status === 401) { sessionStorage.removeItem('adminPass'); setAuthed(false); return; }
 
       const data = await res.json();
 
@@ -155,6 +186,51 @@ function Admin() {
       setEmailSending(false);
     }
   };
+
+  // --- Password gate ---
+  if (!authed) {
+    return (
+      <div className="max-w-sm mx-auto py-24">
+        <h1 className="font-display text-2xl text-espresso mb-6 text-center">Admin Login</h1>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input
+            type="password"
+            value={passInput}
+            onChange={(e) => setPassInput(e.target.value)}
+            placeholder="Password"
+            required
+            className="w-full px-3 py-2 border border-amber-coffee/30 bg-white font-body text-ink focus:outline-none focus:border-sepia"
+          />
+          {passError && (
+            <p className="font-body text-red-600 text-sm">{passError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={verifying}
+            className="w-full py-2 bg-espresso text-parchment font-body hover:bg-espresso/90 transition-colors disabled:opacity-50"
+          >
+            {verifying ? 'Checking...' : 'Log In'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <p className="font-body text-ink/60">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="font-body text-red-600">Error: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12">

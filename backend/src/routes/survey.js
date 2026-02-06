@@ -1,11 +1,17 @@
 import express from 'express';
 import db from '../db/database.js';
 import { sendBroadcastEmail } from '../services/email.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
+// POST /api/survey/verify - Check admin password
+router.post('/verify', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+
 // POST /api/survey/send - Send email to all active members
-router.post('/send', async (req, res) => {
+router.post('/send', requireAdmin, async (req, res) => {
   const { subject, message } = req.body;
 
   if (!subject || !message) {
@@ -32,7 +38,7 @@ router.post('/send', async (req, res) => {
 });
 
 // POST /api/survey/test - Send test email to admin only
-router.post('/test', async (req, res) => {
+router.post('/test', requireAdmin, async (req, res) => {
   const { subject, message } = req.body;
 
   if (!subject || !message) {
